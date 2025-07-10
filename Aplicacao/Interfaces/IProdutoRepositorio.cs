@@ -8,5 +8,8 @@ namespace Aplicacao.Interfaces
         Task<IEnumerable<Produto>> ObterTodosAsync();
         Task AdicionarAsync(Produto produto);
         Task AtualizarAsync(Produto produto);
+        Task DeletarLogicamenteAsync(Guid id);
+        Task<Produto> ObterPorCodigoBarrasAsync(string codigo);
+        Task SincronizarCatalogoAsync(IEnumerable<Produto> produtosDoServidor);
     }
 }

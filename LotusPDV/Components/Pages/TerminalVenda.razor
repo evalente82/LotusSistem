@@ -1,0 +1,187 @@
+﻿@page "/"
+@inject IProdutoRepositorio ProdutoRepoLocal
+@inject ServidorComunicacaoService ServidorService
+@inject IConfiguration Configuration
+@inject IVendaRepositorio VendaRepoLocal
+@using Aplicacao.Interfaces
+@using Dominio.Entidades
+@using Infra.Persistencia.DbContexts
+@using LotusPDV.Services
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Configuration
+
+<div class="terminal-container">
+    <div class="operacoes">
+        <div class="input-produto">
+            <label for="codigo-barras">Código de Barras</label>
+            <input @ref="campoCodigoBarras" type="text" id="codigo-barras" class="form-control form-control-lg"
+                   placeholder="Leia o código ou digite aqui"
+                   @bind="codigoBarrasInput"
+                   @onkeyup="HandleInputKeyUp" />
+
+            <button class="btn btn-primary mt-2" @onclick="AdicionarProdutoNaVenda">Adicionar Produto</button>
+            <div class="botoes-acao">
+
+            <button class="btn btn-success btn-lg" @onclick="FinalizarVenda">Finalizar Venda (F8)</button>
+            <button class="btn btn-danger btn-lg">Cancelar Venda (F9)</button>
+        
+        </div>
+            @if (!string.IsNullOrEmpty(mensagemStatus))
+            {
+                        <div class="alert alert-info mt-2">@mensagemStatus</div>
+            }
+        </div>
+
+        
+    </div>
+    <div class="venda-atual">
+        <h3>Itens da Venda</h3>
+        <div class="lista-itens">
+
+            <div class="total-venda">
+            <h4>TOTAL: @vendaAtual.ValorTotal.ToString("C2")</h4>
+
+        </div>
+            @if (vendaAtual.Itens.Any())
+            {
+                    <table class="table">
+                        <tbody>
+                        @foreach (var item in vendaAtual.Itens)
+                        {
+                                    <tr>
+                                        <td>@item.Produto.Descricao</td>
+                                        <td>@item.Quantidade x @item.PrecoUnitario.ToString("C2")</td>
+                                        <td class="text-end">@((item.Quantidade * item.PrecoUnitario).ToString("C2"))</td>
+                                    </tr>
+                        }
+                        </tbody>
+                    </table>
+            }
+            else
+            {
+                    <p>Nenhum item adicionado.</p>
+            }
+        </div>        
+    </div>
+
+    
+</div>
+
+@code {
+    private VendaPdv vendaAtual = new();
+    private string codigoBarrasInput;
+    private string mensagemStatus;
+    private ElementReference campoCodigoBarras;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Garante que a base de dados local exista
+        using var db = new PdvDbContext(new DbContextOptionsBuilder<PdvDbContext>().UseSqlite($"DataSource={Path.Combine(FileSystem.AppDataDirectory, "lotuspdv.db")}").Options);
+        await db.Database.EnsureCreatedAsync();
+
+        // Verifica se precisa fazer a carga inicial de produtos
+        var produtosLocais = await ProdutoRepoLocal.ObterTodosAsync();
+        if (!produtosLocais.Any())
+        {
+            await SincronizarProdutos();
+        }
+    }
+
+    private async Task SincronizarProdutos()
+    {
+        mensagemStatus = "Primeira execução. Sincronizando produtos com o servidor...";
+        StateHasChanged(); // Força a atualização da tela para mostrar a mensagem
+
+        var produtosDoServidor = await ServidorService.ObterProdutosAsync();
+        if (produtosDoServidor != null)
+        {
+            foreach (var produto in produtosDoServidor)
+            {
+                // Usamos o AdicionarAsync que já tínhamos no repositório!
+                await ProdutoRepoLocal.AdicionarAsync(produto);
+            }
+            mensagemStatus = "Produtos sincronizados com sucesso!";
+        }
+        else
+        {
+            mensagemStatus = "ERRO: Não foi possível conectar ao servidor para buscar os produtos.";
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleInputKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            await AdicionarProdutoNaVenda();
+        }
+    }
+
+    private async Task AdicionarProdutoNaVenda()
+    {
+        if (string.IsNullOrWhiteSpace(codigoBarrasInput)) return;
+
+        var produtoEncontrado = await ProdutoRepoLocal.ObterPorCodigoBarrasAsync(codigoBarrasInput);
+
+        if (produtoEncontrado != null)
+        {
+            var itemExistente = vendaAtual.Itens.FirstOrDefault(i => i.IdProduto == produtoEncontrado.Id);
+
+            if (itemExistente != null)
+            {
+                itemExistente.Quantidade++;
+            }
+            else
+            {
+                vendaAtual.Itens.Add(new ItemVenda
+                    {
+                        IdProduto = produtoEncontrado.Id,
+                        Produto = produtoEncontrado,
+                        Quantidade = 1,
+                        PrecoUnitario = produtoEncontrado.PrecoVenda
+                    });
+            }
+
+            // Recalcula o total
+            vendaAtual.ValorTotal = vendaAtual.Itens.Sum(i => i.Quantidade * i.PrecoUnitario);
+            mensagemStatus = $"{produtoEncontrado.Descricao} adicionado.";
+        }
+        else
+        {
+            mensagemStatus = $"ERRO: Produto com código '{codigoBarrasInput}' não encontrado.";
+        }
+
+        codigoBarrasInput = string.Empty; // Limpa o campo
+        await campoCodigoBarras.FocusAsync(); // Devolve o foco para o campo de input
+    }
+
+    // Adicione este método dentro do bloco @code
+    private async Task FinalizarVenda()
+    {
+        if (!vendaAtual.Itens.Any())
+        {
+            mensagemStatus = "Adicione itens antes de finalizar a venda.";
+            return;
+        }
+
+        // Preenche os dados finais do objeto Venda
+        vendaAtual.Id = Guid.NewGuid();
+        vendaAtual.MomentoDaVendaUTC = DateTime.UtcNow;
+        vendaAtual.IdPDV = Configuration["PdvSettings:IdDoPdv"];
+        vendaAtual.PrecisaSincronizar = true; // Marca para sincronização
+
+        try
+        {
+            // Salva a venda no banco de dados LOCAL (SQLite)
+            await VendaRepoLocal.AdicionarVendaAsync(vendaAtual);
+            mensagemStatus = $"Venda {vendaAtual.Id.ToString().Substring(0, 8)} finalizada e salva localmente. Sincronizando em breve...";
+
+            // Prepara a UI para a próxima venda
+            vendaAtual = new VendaPdv();
+        }
+        catch (Exception ex)
+        {
+            mensagemStatus = $"Erro ao salvar a venda localmente: {ex.Message}";
+        }
+    }
+}

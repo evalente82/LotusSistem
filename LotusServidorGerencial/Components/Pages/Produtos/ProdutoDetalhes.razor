@@ -1,0 +1,112 @@
+﻿@page "/produtos/novo"
+@page "/produtos/editar/{IdProduto}"
+
+@using Aplicacao.Interfaces
+@using Dominio.Entidades
+@inject IProdutoRepositorio ProdutoRepo
+@inject NavigationManager NavManager
+
+<PageTitle>@Titulo</PageTitle>
+
+<h3>@Titulo</h3>
+
+<EditForm Model="@produto" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="alert alert-danger">@mensagemErro</div>
+    }
+
+    <div class="mb-3">
+        <label for="descricao" class="form-label">Descrição</label>
+        <InputText id="descricao" @bind-Value="produto.Descricao" class="form-control" />
+        <ValidationMessage For="@(() => produto.Descricao)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="codigoBarras" class="form-label">Código de Barras</label>
+        <InputText id="codigoBarras" @bind-Value="produto.CodigoBarras" class="form-control" />
+        <ValidationMessage For="@(() => produto.CodigoBarras)" />
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="precoVenda" class="form-label">Preço de Venda (R$)</label>
+            <InputNumber id="precoVenda" @bind-Value="produto.PrecoVenda" class="form-control" />
+            <ValidationMessage For="@(() => produto.PrecoVenda)" />
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="estoque" class="form-label">Estoque Atual</label>
+            <InputNumber id="estoque" @bind-Value="produto.EstoqueAtual" class="form-control" />
+            <ValidationMessage For="@(() => produto.EstoqueAtual)" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">
+        <span class="bi bi-check-circle-fill"></span> Salvar
+    </button>
+    <button type="button" class="btn btn-secondary" @onclick="VoltarParaLista">
+        <span class="bi bi-x-circle"></span> Cancelar
+    </button>
+
+</EditForm>
+
+@code {
+    [Parameter]
+    public string IdProduto { get; set; }
+
+    private Produto produto = new();
+    private string Titulo = "Novo Produto";
+    private string mensagemErro;
+    private bool isEditMode => !string.IsNullOrEmpty(IdProduto);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (isEditMode)
+        {
+            Titulo = "Editar Produto";
+            var produtoId = Guid.Parse(IdProduto);
+            produto = await ProdutoRepo.ObterPorIdAsync(produtoId) ?? new();
+        }
+        else
+        {
+            Titulo = "Novo Produto";
+            produto = new();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            if (isEditMode)
+            {
+                // Modo de Edição
+                produto.AtualizadoEmUTC = DateTime.UtcNow;
+                await ProdutoRepo.AtualizarAsync(produto);
+            }
+            else
+            {
+                // Modo de Criação
+                produto.Id = Guid.NewGuid();
+                produto.CriadoEmUTC = DateTime.UtcNow;
+                produto.AtualizadoEmUTC = produto.CriadoEmUTC;
+                await ProdutoRepo.AdicionarAsync(produto);
+            }
+
+            // Se tudo deu certo, volta para a lista
+            NavManager.NavigateTo("/produtos");
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = $"Erro ao salvar produto: {ex.Message}";
+            Console.WriteLine(ex);
+        }
+    }
+
+    private void VoltarParaLista()
+    {
+        NavManager.NavigateTo("/produtos");
+    }
+}

@@ -1,0 +1,68 @@
+﻿@page "/vendas"
+@inject IVendaRepositorio VendaRepo
+@using Aplicacao.Interfaces
+@using Dominio.Entidades
+
+<PageTitle>Vendas Recebidas</PageTitle>
+
+<h1><span class="bi bi-cart-check-fill" aria-hidden="true"></span> Vendas Recebidas</h1>
+<p>Esta tela exibe todas as vendas que foram sincronizadas pelos Pontos de Venda (PDVs).</p>
+
+@if (vendas == null && string.IsNullOrEmpty(mensagemErro))
+{
+    <p><em>Carregando histórico de vendas...</em></p>
+}
+else if (!string.IsNullOrEmpty(mensagemErro))
+{
+    <div class="alert alert-danger">
+        <strong>Erro:</strong> @mensagemErro
+    </div>
+}
+else if (!vendas.Any())
+{
+    <div class="alert alert-info">
+        Nenhuma venda foi recebida ainda.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Data e Hora (UTC)</th>
+                <th>ID do PDV</th>
+                <th class="text-end">Valor Total (R$)</th>
+                <th>ID da Venda</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var venda in vendas)
+            {
+                <tr>
+                    <td>@venda.MomentoDaVendaUTC.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    <td>@venda.IdPDV</td>
+                    <td class="text-end">@venda.ValorTotal.ToString("N2")</td>
+                    <td>@venda.Id</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<Venda> vendas;
+    private string mensagemErro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            vendas = await VendaRepo.ObterTodasAsVendasAsync();
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = $"Não foi possível carregar as vendas. Detalhes: {ex.Message}";
+            Console.WriteLine(ex);
+        }
+    }
+}

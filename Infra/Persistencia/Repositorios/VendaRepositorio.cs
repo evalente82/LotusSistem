@@ -1,7 +1,10 @@
-﻿// Substitua o VendaRepositorio.cs anterior por este:
-using Aplicacao.Interfaces;
+﻿using Aplicacao.Interfaces;
 using Dominio.Entidades;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Infra.Persistencia.Repositorios
 {
@@ -14,29 +17,38 @@ namespace Infra.Persistencia.Repositorios
             _contexto = contexto;
         }
 
+        // Funciona para ambos os contextos, pois VendaPdv herda de Venda.
         public async Task AdicionarVendaAsync(Venda venda)
         {
-            // Ao adicionar no PDV, a propriedade já vem como true.
+            // O EF Core sabe se o objeto é do tipo Venda ou VendaPdv e salva na tabela correta.
             await _contexto.Set<Venda>().AddAsync(venda);
             await _contexto.SaveChangesAsync();
         }
 
+        // Este método é chamado pelo ServidorDbContext.
+        // O Set<Venda>() aqui vai consultar a tabela "Vendas" do PostgreSQL.
+        public async Task<IEnumerable<Venda>> ObterTodasAsVendasAsync()
+        {
+            return await _contexto.Set<Venda>()
+                .OrderByDescending(v => v.MomentoDaVendaUTC)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        // Este método é chamado pelo PdvDbContext.
+        // O Set<VendaPdv>() aqui vai consultar a tabela "Vendas" do SQLite.
         public async Task<IEnumerable<Venda>> ObterVendasNaoSincronizadasAsync()
         {
-            // Esta consulta só funcionará corretamente no PdvDbContext,
-            // pois o `PrecisaSincronizar` será mapeado para a coluna do SQLite.
-            // Para isso, precisamos configurar o PdvDbContext.
-
-            // Simulação da consulta - a configuração final será no DbContext.
-            return await _contexto.Set<Venda>()
-                .Where(v => v.PrecisaSincronizar)
-                .Include(v => v.Itens) // Inclui os itens para enviar ao servidor
-                .ToListAsync();
+            return await _contexto.Set<VendaPdv>()
+            .Where(v => v.PrecisaSincronizar)
+            .Include(v => v.Itens)
+            .AsNoTracking()
+            .ToListAsync();
         }
 
         public async Task MarcarVendasComoSincronizadasAsync(IEnumerable<Guid> idsDasVendas)
         {
-            var vendasParaAtualizar = await _contexto.Set<Venda>()
+            var vendasParaAtualizar = await _contexto.Set<VendaPdv>()
                 .Where(v => idsDasVendas.Contains(v.Id))
                 .ToListAsync();
 
@@ -45,7 +57,7 @@ namespace Infra.Persistencia.Repositorios
                 venda.PrecisaSincronizar = false;
             }
 
-            _contexto.Set<Venda>().UpdateRange(vendasParaAtualizar);
+            _contexto.UpdateRange(vendasParaAtualizar);
             await _contexto.SaveChangesAsync();
         }
     }

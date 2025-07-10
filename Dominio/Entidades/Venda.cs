@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-using System.ComponentModel.DataAnnotations.Schema;
-
+﻿
 namespace Dominio.Entidades
 {
     /// <summary>
@@ -39,13 +36,6 @@ namespace Dominio.Entidades
             Itens = new List<ItemVenda>();
         }
 
-        /// <summary>
-        /// Controla o estado de sincronização no PDV.
-        /// [NotMapped] significa que o EF Core irá ignorar esta coluna
-        /// ao interagir com o banco de dados do SERVIDOR, mas podemos
-        /// usá-la no contexto do PDV.
-        /// </summary>
-        [NotMapped]
-        public bool PrecisaSincronizar { get; set; } = true;
+        public DateTime SincronizadoEmUTC { get; set; }
     }
 }

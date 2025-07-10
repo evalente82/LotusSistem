@@ -1,0 +1,107 @@
+﻿@page "/produtos"
+@inject IProdutoRepositorio ProdutoRepo
+@inject IJSRuntime JSRuntime
+@using Aplicacao.Interfaces
+@using Dominio.Entidades
+
+<PageTitle>Lista de Produtos</PageTitle>
+
+<h1><span class="bi bi-box-seam-fill" aria-hidden="true"></span> Produtos Cadastrados</h1>
+
+<p>Aqui estão todos os produtos cadastrados no sistema central.</p>
+
+<a href="/produtos/novo" class="btn btn-primary mb-3">
+    <span class="bi bi-plus-circle-fill"></span> Adicionar Novo Produto
+</a>
+
+@if (produtos == null && string.IsNullOrEmpty(mensagemErro))
+{
+    <p><em>Carregando produtos...</em></p>
+}
+else if (!string.IsNullOrEmpty(mensagemErro))
+{
+    <div class="alert alert-danger">
+        <strong>Erro:</strong> @mensagemErro
+    </div>
+}
+else if (!produtos.Any())
+{
+    <div class="alert alert-info">
+        Nenhum produto encontrado. Cadastre o primeiro produto para vê-lo aqui.
+    </div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Descrição</th>
+                <th>Código de Barras</th>
+                <th class="text-end">Preço (R$)</th>
+                <th class="text-end">Estoque</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var produto in produtos)
+            {
+                <tr>
+                    <td>@produto.Descricao</td>
+                    <td>@produto.CodigoBarras</td>
+                    <td class="text-end">@produto.PrecoVenda.ToString("N2")</td>
+                    <td class="text-end">@produto.EstoqueAtual.ToString("N3")</td>
+                    <td>
+                        <a href="@($"produtos/editar/{produto.Id}")" class="btn btn-sm btn-secondary" title="Editar">
+                            <span class="icon-custom icon-pencil"></span>
+                        </a>
+
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeletarProduto(produto.Id, produto.Descricao)" title="Deletar">
+                            <span class="icon-custom icon-trash"></span>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+@code {
+    private IEnumerable<Produto> produtos;
+    private string mensagemErro;
+
+    // Este método é executado automaticamente quando a página é carregada.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Usamos o repositório que foi injetado para buscar os dados do banco.
+            produtos = await ProdutoRepo.ObterTodosAsync();
+        }
+        catch (Exception ex)
+        {
+            // Captura qualquer erro (ex: falha de conexão com o banco) e exibe uma mensagem amigável.
+            mensagemErro = $"Não foi possível carregar os produtos. Verifique a conexão com o banco de dados e a configuração. Detalhes: {ex.Message}";
+            Console.WriteLine(ex); // Imprime o erro completo no console para depuração.
+        }
+    }
+
+    private async Task DeletarProduto(Guid id, string descricao)
+    {
+        // Pede confirmação ao usuário antes de deletar
+        bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja deletar o produto '{descricao}'?");
+        if (confirmado)
+        {
+            try
+            {
+                await ProdutoRepo.DeletarLogicamenteAsync(id);
+                // Recarrega a lista para refletir a exclusão
+                produtos = await ProdutoRepo.ObterTodosAsync();
+            }
+            catch (Exception ex)
+            {
+                mensagemErro = $"Erro ao deletar o produto: {ex.Message}";
+            }
+        }
+    }
+}

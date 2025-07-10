@@ -8,5 +8,6 @@ namespace Aplicacao.Interfaces
         // Exemplo para o PDV: buscar vendas que precisam ser sincronizadas
         Task<IEnumerable<Venda>> ObterVendasNaoSincronizadasAsync();
         Task MarcarVendasComoSincronizadasAsync(IEnumerable<Guid> idsDasVendas);
+        Task<IEnumerable<Venda>> ObterTodasAsVendasAsync();
     }
 }
