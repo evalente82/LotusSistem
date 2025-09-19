@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infra", "Infra\Infra.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aplicacao", "Aplicacao\Aplicacao.csproj", "{8589D24E-C809-4CF8-82E5-D5546404B0F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LotusSistem.IA", "LotusSistem.IA\LotusSistem.IA.csproj", "{FE3CC0B7-AC8A-4C98-84FA-5D1573EBCB24}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,8 +45,15 @@ Global
 		{8589D24E-C809-4CF8-82E5-D5546404B0F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8589D24E-C809-4CF8-82E5-D5546404B0F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8589D24E-C809-4CF8-82E5-D5546404B0F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE3CC0B7-AC8A-4C98-84FA-5D1573EBCB24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE3CC0B7-AC8A-4C98-84FA-5D1573EBCB24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE3CC0B7-AC8A-4C98-84FA-5D1573EBCB24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE3CC0B7-AC8A-4C98-84FA-5D1573EBCB24}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B3D9F834-36E0-49AB-AAF1-B1354688FE2F}
 	EndGlobalSection
 EndGlobal

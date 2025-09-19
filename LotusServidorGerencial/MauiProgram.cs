@@ -1,12 +1,14 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Aplicacao.Interfaces;
 using Infra.Persistencia.DbContexts;
-using Microsoft.EntityFrameworkCore;
-using Aplicacao.Interfaces;
 using Infra.Persistencia.Repositorios;
-using Microsoft.Extensions.DependencyInjection;
-using System;
 using LotusServidorGerencial.Services;
+using LotusSistem.IA.Interfaces;
+using LotusSistem.IA.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace LotusServidorGerencial
 {
@@ -48,6 +50,11 @@ namespace LotusServidorGerencial
             // --- MUDANÇA PRINCIPAL AQUI ---
             // Apenas registramos o serviço como Singleton. Não usamos mais IHostedService.
             builder.Services.AddSingleton<TcpServerService>();
+
+            // --- ADICIONE A LINHA ABAIXO ---
+            // Registra o serviço de IA como Singleton para carregar o modelo apenas uma vez.
+            builder.Services.AddSingleton<ILLMService, Phi3MiniLLMService>();
+
 
             var app = builder.Build();
 

@@ -1,0 +1,128 @@
+﻿@page "/chat-ia"
+@inject LotusSistem.IA.Interfaces.ILLMService IaService
+@using System.Text
+
+<div class="pa-4">
+    <h3>Chat com o Administrador IA</h3>
+
+    <div class="chat-container">
+        <div class="chat-history" id="chat-history">
+            @foreach (var message in chatHistory)
+            {
+                <div class="chat-message @message.Author.ToLower()">
+                    <div class="message-bubble">@((MarkupString)message.Content)</div>
+                </div>
+            }
+            @if (isProcessing)
+            {
+                <div class="chat-message assistant">
+                    <div class="message-bubble typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="chat-input-area">
+            <textarea @bind="currentMessage"
+                      @bind:event="oninput"
+                      @onkeydown="HandleKeyDown"
+                      placeholder="Pergunte algo ao sistema..."
+                      class="chat-input"
+                      spellcheck="true"
+                      lang="pt-BR">
+            </textarea>
+            <button @onclick="SendMessage" disabled="@isProcessing" class="send-button">Enviar</button>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private string currentMessage = string.Empty;
+    private bool isProcessing = false;
+    private List<ChatMessage> chatHistory = new List<ChatMessage>();
+
+    protected override void OnInitialized()
+    {
+        chatHistory.Add(new ChatMessage("Assistant", "Olá! Eu sou o assistente administrativo do LotusSistem. Como posso ajudar?"));
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(currentMessage) || isProcessing)
+        {
+            return;
+        }
+
+        var userMessage = currentMessage;
+        chatHistory.Add(new ChatMessage("User", userMessage));
+        currentMessage = string.Empty;
+        isProcessing = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await IaService.GerarRespostaAsync(userMessage);
+            chatHistory.Add(new ChatMessage("Assistant", response));
+        }
+        catch (Exception ex)
+        {
+            chatHistory.Add(new ChatMessage("Assistant", $"Ocorreu um erro: {ex.Message}. Verifique se o caminho do modelo em Phi3MiniLLMService.cs está correto."));
+        }
+        finally
+        {
+            isProcessing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private class ChatMessage
+    {
+        public string Author { get; }
+        public string Content { get; }
+
+        public ChatMessage(string author, string content)
+        {
+            Author = author;
+            Content = content;
+        }
+    }
+}
+
+<style>
+    .pa-4 { padding: 1.5rem; }
+    .chat-container { display: flex; flex-direction: column; height: 70vh; max-height: 700px; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+    .chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; }
+    .chat-input-area { display: flex; padding: 10px; border-top: 1px solid #ccc; background-color: #f9f9f9; }
+    .chat-input { flex-grow: 1; border-radius: 5px; border: 1px solid #ddd; padding: 8px; resize: none; }
+    .send-button { margin-left: 10px; padding: 8px 15px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+    .send-button:disabled { background-color: #aaa; }
+
+    .chat-message { margin-bottom: 10px; max-width: 80%; display: flex; }
+    .message-bubble { padding: 10px 15px; border-radius: 15px; word-break: break-word; }
+
+    .chat-message.user { margin-left: auto; }
+    .chat-message.user .message-bubble { background-color: #007bff; color: white; border-bottom-right-radius: 0; }
+
+    .chat-message.assistant { margin-right: auto; }
+    .chat-message.assistant .message-bubble { background-color: #f0f0f0; color: #333; border-bottom-left-radius: 0; }
+
+    .typing-indicator span {
+        height: 8px; width: 8px; margin: 0 1px; background-color: #9E9E9E;
+        border-radius: 50%; display: inline-block;
+        animation: a 1.4s infinite ease-in-out both;
+    }
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+    
+    /* MUDANÇA PRINCIPAL AQUI */
+    @@keyframes a { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+</style>

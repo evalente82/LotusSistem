@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Arquivos de configuração de ambiente local
+appsettings.Development.json
+
+# Modelos de IA (arquivos grandes que devem ser baixados separadamente)
+*.gguf

@@ -1,0 +1,86 @@
+# Relatório de Arquitetura e Hierarquia do Sistema LotusSistem
+
+## Visão Geral da Arquitetura
+
+O sistema LotusSistem é estruturado em uma arquitetura de camadas (Layered Architecture), que é um padrão comum para aplicações .NET. Essa abordagem promove a separação de responsabilidades, facilitando a manutenção, testabilidade e escalabilidade do sistema.
+
+As camadas são organizadas da seguinte forma, da mais interna para a mais externa:
+
+1.  **Dominio (Camada de Domínio):** É o coração do sistema. Contém as entidades de negócio (`Produto`, `Venda`, etc.) e as regras de negócio fundamentais. Esta camada não depende de nenhuma outra, garantindo que a lógica de negócio seja independente de detalhes de infraestrutura ou de interface do usuário.
+
+2.  **Aplicacao (Camada de Aplicação):** Orquestra as operações e os casos de uso do sistema. Define interfaces (contratos) para os repositórios (`IProdutoRepositorio`, `IVendaRepositorio`) e utiliza DTOs (Data Transfer Objects) para transferir dados entre as camadas, como `ProdutoDto` e `RegistrarVendaDto`. Ela depende da camada de `Dominio` para acessar as entidades.
+
+3.  **Infra (Camada de Infraestrutura):** Implementa as interfaces definidas na camada de `Aplicacao`. É responsável pelos detalhes técnicos, como o acesso a banco de dados (usando Entity Framework Core com `PdvDbContext` e `ServidorDbContext`), comunicação com sistemas externos e outros aspectos de infraestrutura. Esta camada depende da `Aplicacao` (para implementar suas interfaces) e do `Dominio` (para manipular as entidades).
+
+4.  **LotusPDV e LotusServidorGerencial (Camada de Apresentação/UI):** São os pontos de entrada do usuário. `LotusPDV` parece ser o Ponto de Venda e `LotusServidorGerencial` uma aplicação de gerenciamento. Ambos são projetos MAUI, o que significa que podem ser executados em múltiplas plataformas (Windows, Android, iOS, etc.). Eles consomem os serviços da camada de `Aplicacao` e `Infra` para exibir dados e executar ações do usuário.
+
+### Fluxo de Dependências
+
+O fluxo de dependências é unidirecional, o que é uma característica chave de uma arquitetura bem definida:
+
+`Apresentação (UI) -> Aplicacao -> Dominio`
+`Apresentação (UI) -> Infra -> Aplicacao -> Dominio`
+
+---
+
+## Hierarquia de Pastas e Classes
+
+A seguir está a estrutura detalhada de pastas e classes do seu projeto, com base nos arquivos encontrados.
+
+```
+LotusSistem/
+├─── Aplicacao/
+│    ├─── Aplicacao.csproj
+│    ├─── DTOs/
+│    │    ├─── Comunicacao.cs
+│    │    ├─── ProdutoDto.cs
+│    │    └─── RegistrarVendaDto.cs
+│    └─── Interfaces/
+│         ├─── IProdutoRepositorio.cs
+│         └─── IVendaRepositorio.cs
+│
+├─── Dominio/
+│    ├─── Dominio.csproj
+│    └─── Entidades/
+│         ├─── ItemVenda.cs
+│         ├─── Produto.cs
+│         ├─── Venda.cs
+│         └─── VendaPdv.cs
+│
+├─── Infra/
+│    ├─── Infra.csproj
+│    └─── Persistencia/
+│         ├─── DbContexts/
+│         │    ├─── PdvDbContext.cs
+│         │    └─── ServidorDbContext.cs
+│         └─── Repositorios/
+│              ├─── ProdutoRepositorio.cs
+│              └─── VendaRepositorio.cs
+│
+├─── LotusPDV/ (Aplicação MAUI - Ponto de Venda)
+│    ├─── LotusPDV.csproj
+│    ├─── App.xaml.cs
+│    ├─── MainPage.xaml.cs
+│    ├─── MauiProgram.cs
+│    ├─── Components/
+│    │    └─── Pages/
+│    │         └─── TerminalVenda.razor
+│    └─── Services/
+│         ├─── ServidorComunicacaoService.cs
+│         └─── SincronizacaoService.cs
+│
+└─── LotusServidorGerencial/ (Aplicação MAUI - Gerencial)
+     ├─── LotusServidorGerencial.csproj
+     ├─── App.xaml.cs
+     ├─── MainPage.xaml.cs
+     ├─── MauiProgram.cs
+     ├─── Components/
+     │    └─── Pages/
+     │         ├─── Counter.razor
+     │         ├─── Home.razor
+     │         └─── Weather.razor
+     └─── Services/
+          └─── TcpServerService.cs
+```
+
+Este relatório fornece um contexto sólido da estrutura e arquitetura do seu projeto. Você pode usar este texto para alimentar outras IAs e obter assistência mais precisa para futuras implementações.
