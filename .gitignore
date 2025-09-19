@@ -367,3 +367,7 @@ appsettings.Development.json
 
 # Modelos de IA (arquivos grandes que devem ser baixados separadamente)
 *.gguf
+
+# Ignorar arquivos de log e texto genéricos
+*.log
+*.txt
